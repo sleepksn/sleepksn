@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上课姿态分析</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            background: #f0f2f5;
+        }
+
+        /* 左侧面板 */
+        .left-panel {
+            width: 420px;
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 30px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            color: #cbd5e1;
+        }
+
+        .form-group input {
+            height: 36px;
+            padding: 0 12px;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            background: #1e293b;
+            color: white;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: #3b82f6;
+        }
+
+        .tip {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .upload-area {
+            margin-top: 8px;
+            border: 2px dashed #334155;
+            border-radius: 8px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 36px;
+            color: #3b82f6;
+            margin-bottom: 8px;
+        }
+
+        .upload-text {
+            font-size: 16px;
+            font-weight: 500;
+            color: #e2e8f0;
+        }
+
+        .upload-tip {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        #videoInput {
+            display: none;
+        }
+
+        .analyze-btn {
+            width: 100%;
+            height: 44px;
+            margin-top: auto;
+            border: none;
+            border-radius: 6px;
+            background: #3b82f6;
+            color: white;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .analyze-btn:hover {
+            background: #2563eb;
+        }
+
+        .analyze-btn:disabled {
+            background: #475569;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            color: #94a3b8;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        /* 右侧面板 */
+        .right-panel {
+            flex: 1;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #videoPreview {
+            width: 100%;
+            display: block;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .empty-result {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            gap: 12px;
+            font-size: 16px;
+        }
+
+        .result-area {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            line-height: 1.8;
+            color: #334155;
+            font-size: 14px;
+        }
+
+        .result-area h3 {
+            margin: 0 0 12px 0;
+            font-size: 18px;
+            color: #1e293b;
+        }
+
+        .result-area h4 {
+            margin: 12px 0 8px 0;
+            color: #1e293b;
+        }
+    </style>
+</head>
+<body>
+    <!-- 左侧配置区 -->
+    <div class="left-panel">
+        <h2 class="title">📚 上课姿态分析</h2>
+        <p class="subtitle">AI驱动的坐姿健康评估系统</p >
+
+        <div class="form-group">
+            <label>API 地址</label>
+            <input type="text" id="apiUrl" placeholder="如 https://api.deepseek.com" value="https://api.deepseek.com">
+        </div>
+
+        <div class="form-group">
+            <label>API KEY</label>
+            <input type="password" id="apiKey" placeholder="输入你的API Key">
+        </div>
+
+        <div class="form-group">
+            <label>模型名称</label>
+            <input type="text" id="modelName" placeholder="如 deepseek-vl2" value="deepseek-vl2">
+            <p class="tip">必须使用支持图像识别的多模态模型</p >
+        </div>
+
+        <div class="upload-area" onclick="document.getElementById('videoInput').click()">
+            <div class="upload-icon">🎥</div>
+            <div class="upload-text">上传视频</div>
+            <div class="upload-tip">请上传5-10秒上课坐姿视频<br>侧面拍摄、上半身清晰效果最佳<br>支持 MP4, MOV, AVI 格式</div>
+        </div>
+        <input type="file" id="videoInput" accept="video/*">
+
+        <button class="analyze-btn" id="analyzeBtn" onclick="startAnalyze()" disabled>开始分析</button>
+        <div class="loading" id="loadingText" style="display:none;">AI正在分析中，请稍候...</div>
+    </div>
+
+    <!-- 右侧结果区 -->
+    <div class="right-panel">
+        <div class="video-container" id="videoContainer" style="display:none;">
+            <video id="videoPreview" controls muted loop></video>
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="empty-result" id="emptyResult">
+            <span style="font-size:80px;">📊</span>
+            <p>上传视频开始分析</p >
+        </div>
+
+        <div class="result-area" id="resultArea" style="display:none;">
+            <h3>📊 坐姿健康分析报告</h3>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const videoInput = document.getElementById('videoInput');
+        const videoPreview = document.getElementById('videoPreview');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loadingText = document.getElementById('loadingText');
+        const emptyResult = document.getElementById('emptyResult');
+        const videoContainer = document.getElementById('videoContainer');
+        const resultArea = document.getElementById('resultArea');
+        const resultContent = document.getElementById('resultContent');
+
+        let videoFile = null;
+
+        // 监听视频上传
+        videoInput.addEventListener('change', function(e) {
+            videoFile = e.target.files[0];
+            if (!videoFile) return;
+
+            videoPreview.src = URL.createObjectURL(videoFile);
+            emptyResult.style.display = 'none';
+            videoContainer.style.display = 'block';
+            resultArea.style.display = 'none';
+            analyzeBtn.disabled = false;
+        });
+
+        // 开始分析
+        async function startAnalyze() {
+            const apiUrl = document.getElementById('apiUrl').value.trim();
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const modelName = document.getElementById('modelName').value.trim();
+
+            if (!apiKey) {
+                alert('请先输入API Key');
+                return;
+            }
+
+            analyzeBtn.disabled = true;
+            loadingText.style.display = 'block';
+            resultArea.style.display = 'none';
+
+            try {
+                // 1. 截取视频中间一帧
+                const frameBase64 = await captureFrame();
+
+                // 2. 调用大模型API
+                const report = await callAI(apiUrl, apiKey, modelName, frameBase64);
+
+                // 3. 展示结果
+                resultContent.innerHTML = formatReport(report);
+                resultArea.style.display = 'block';
+            } catch (error) {
+                alert('分析失败：' + error.message);
+            } finally {
+                analyzeBtn.disabled = false;
+                loadingText.style.display = 'none';
+            }
+        }
+
+        // 截取视频一帧并转Base64
+        function captureFrame() {
+            return new Promise((resolve, reject) => {
+                videoPreview.currentTime = videoPreview.duration / 2; // 取中间帧
+                videoPreview.onseeked = function() {
+                    canvas.width = videoPreview.videoWidth;
+                    canvas.height = videoPreview.videoHeight;
+                    ctx.drawImage(videoPreview, 0, 0, canvas.width, canvas.height);
+                    
+                    // 转Base64
+                    const base64 = canvas.toDataURL('image/jpeg', 0.8);
+                    resolve(base64.split(',')[1]); // 去掉前缀
+                };
+                videoPreview.onerror = reject;
+            });
+        }
+
+        // 调用多模态大模型
+        async function callAI(apiUrl, apiKey, modelName, imageBase64) {
+            const prompt = `你是专业的学生坐姿健康评估专家。请仔细观察这张上课坐姿照片，从健康角度进行全面评估。
+
+请按照以下格式输出：
+### 一、整体评价
+### 二、存在的问题
+### 三、改正建议（3条具体可操作的）
+
+重点评估：头部前倾程度、是否驼背、肩膀是否端正、坐姿稳定性。语言通俗易懂，适合学生和家长阅读。`;
+
+            const response = await fetch(`${apiUrl}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: modelName,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [
+                                { type: 'text', text: prompt },
+                                {
+                                    type: 'image_url',
+                                    image_url: { url: `data:image/jpeg;base64,${imageBase64}` }
+                                }
+                            ]
+                        }
+                    ],
+                    temperature: 0.7
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('API请求失败，请检查地址和Key是否正确');
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content;
+        }
+
+        // 格式化报告
+        function formatReport(text) {
+            return text
+                .replace(/### /g, '<h4>')
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*/g, '');
+        }
+    </script>
+</body>
+</html>
